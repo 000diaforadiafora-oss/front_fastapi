@@ -1,4 +1,4 @@
-# Planetschool Frontend
+# front_fastapi (Planetschool Frontend)
 
 Planetschool Frontend is a Vite + React application that integrates with the FastAPI backend available at [https://countex.space](https://countex.space). It offers an interface to detect colony-forming units (CFUs), manage mock batches and samples, and edit detections in the browser, including polygon-based segmentation tools and webcam capture.
 

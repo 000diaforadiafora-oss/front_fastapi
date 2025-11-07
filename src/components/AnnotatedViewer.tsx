@@ -33,6 +33,7 @@ export function AnnotatedViewer({ result, file, onUpdate }: AnnotatedViewerProps
   const [dragState, setDragState] = useState<{ index: number; offsetX: number; offsetY: number } | null>(null);
   const [polyPoints, setPolyPoints] = useState<Point[]>([]);
   const [message, setMessage] = useState<string | null>(null);
+  const [showModelOverlay, setShowModelOverlay] = useState(false);
 
   const overlayRef = useRef<SVGSVGElement | null>(null);
   const triggerClientExport = useCallback(async () => {
@@ -57,6 +58,10 @@ export function AnnotatedViewer({ result, file, onUpdate }: AnnotatedViewerProps
     if (!filePreview) return;
     return () => URL.revokeObjectURL(filePreview);
   }, [filePreview]);
+
+  useEffect(() => {
+    setShowModelOverlay(false);
+  }, [file, result?.annotated_image]);
 
   useEffect(() => {
     if (!result) {
@@ -353,7 +358,20 @@ export function AnnotatedViewer({ result, file, onUpdate }: AnnotatedViewerProps
     );
   }, [boxes, draftRect, selectedIndex, mode, polyPoints]);
 
-  const hasData = Boolean(result && (result.annotated_image || file));
+  const baseImage = useMemo(() => {
+    if (filePreview) return filePreview;
+    if (result?.annotated_image) return result.annotated_image;
+    return "";
+  }, [filePreview, result?.annotated_image]);
+
+  const displayImage = useMemo(() => {
+    if (showModelOverlay) {
+      return result?.annotated_image ?? baseImage;
+    }
+    return baseImage;
+  }, [baseImage, result?.annotated_image, showModelOverlay]);
+
+  const hasData = Boolean(displayImage);
 
   return (
     <Card className="w-full">
@@ -377,13 +395,21 @@ export function AnnotatedViewer({ result, file, onUpdate }: AnnotatedViewerProps
           <Button onClick={triggerClientExport} disabled={!file || boxes.length === 0}>
             Export client ZIP
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setShowModelOverlay((prev) => !prev)}
+            disabled={!result?.annotated_image && !filePreview}
+          >
+            {showModelOverlay ? "Show original" : "Show model overlay"}
+          </Button>
           {message && <Badge variant="outline">{message}</Badge>}
         </div>
         <div className="relative max-h-[560px] w-full overflow-hidden rounded-2xl border bg-black/10">
           {hasData ? (
             <>
               <img
-                src={result?.annotated_image ?? filePreview ?? ""}
+                src={displayImage}
                 alt="Annotated"
                 className="block h-full w-full object-contain"
               />
