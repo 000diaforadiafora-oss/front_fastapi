@@ -15,11 +15,11 @@ Planetschool Frontend is a Vite + React application that integrates with the Fas
 
 ```bash
 npm install
-cp .env.example .env # or echo "VITE_API_BASE_URL=https://countex.space" > .env
+cp .env.example .env
 npm run dev
 ```
 
-The default environment expects a backend reachable at `https://countex.space`. Adjust the `VITE_API_BASE_URL` variable if you host the backend elsewhere.
+By default the frontend assumes the backend is proxied locally under `/api` (matching the provided Nginx template). If you are calling a remote backend directly, change `VITE_API_BASE_URL` accordingly in `.env`.
 
 ## Available scripts
 
@@ -60,7 +60,7 @@ Finally, monitor the services to make sure both the frontend and backend stay he
 
 ```bash
 sudo systemctl status planetschool
-curl -I https://countex.space/detect/
+curl -I https://countex.space/api/detect/
 ```
 
 ### Zero-downtime deploy (optional)
@@ -94,9 +94,10 @@ echo '0 3 * * * root certbot renew --quiet --deploy-hook "systemctl reload nginx
 
 ### Nginx considerations
 
-- `deploy/nginx.conf` configures cache lifetimes via a `map` block, injects security headers, and sets `client_max_body_size 25M` for larger uploads.
-- The proxy stanza extends `proxy_read_timeout`/`proxy_send_timeout` to 120 s to tolerate slow inference responses.
-- When hosting the backend on the same origin, consider exposing it under `/api/` and pointing `VITE_API_BASE_URL` to `/api` to eliminate CORS requirements in production.
+- `deploy/nginx.conf` configures cache lifetimes via a `map` block, injects security headers (CSP, Referrer-Policy, Permissions-Policy), enables compression, and sets `client_max_body_size 50M` for large uploads.
+- The proxy stanza extends `proxy_read_timeout`/`proxy_send_timeout` to 120 s and applies a lightweight rate limit to `/api/detect/` to tolerate slow inference while defending against bursts.
+- Static assets are cached aggressively while `index.html` is marked `no-store` to prevent stale SPA shells.
+- When hosting the backend on the same origin, expose it under `/api/` and set `VITE_API_BASE_URL=/api` (the default) to eliminate CORS requirements in production.
 
 ### Troubleshooting
 
@@ -108,3 +109,9 @@ journalctl -u nginx -e       # review recent errors
 curl -I https://countex.space           # validate the frontend
 curl -I https://countex.space/api/health # validate the proxied backend
 ```
+
+If uploads fail with `413 Request Entity Too Large`, increase `client_max_body_size` in Nginx (and mirror the validation limits in FastAPI). Timeouts longer than two minutes may need matching increases in both the frontend timeout (see `src/api/client.ts`) and the proxy block.
+
+### Webcam compatibility
+
+Browsers require a secure context for camera access. Test webcam capture over `https://` (especially on iOS Safari, which also needs a user gesture before enabling `getUserMedia`).

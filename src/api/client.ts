@@ -1,5 +1,5 @@
-const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "https://countex.space";
-const DEFAULT_TIMEOUT_MS = 60_000;
+const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
+const DEFAULT_TIMEOUT_MS = 120_000;
 
 async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeout = DEFAULT_TIMEOUT_MS) {
   const controller = new AbortController();
@@ -26,7 +26,7 @@ export async function postForm<T = unknown>(path: string, formData: FormData, ti
       method: "POST",
       body: formData,
     },
-    timeout
+    timeout ?? DEFAULT_TIMEOUT_MS
   );
   return handleResponse<T>(response);
 }
@@ -38,7 +38,7 @@ export async function postFormBlob(path: string, formData: FormData, timeout?: n
       method: "POST",
       body: formData,
     },
-    timeout
+    timeout ?? DEFAULT_TIMEOUT_MS
   );
   if (!response.ok) {
     const text = await response.text();
