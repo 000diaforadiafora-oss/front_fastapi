@@ -274,19 +274,19 @@ export function AnnotatedViewer({ result, file, onUpdate }: AnnotatedViewerProps
     setBoxes((prev) => prev.map((box, idx) => (idx === index ? { ...box, class: value } : box)));
   };
 
-  const handleBoxValueChange = (index: number, field: keyof Box, value: number) => {
+  const handleBoxValueChange = (index: number, field: "x" | "y" | "width" | "height", value: number) => {
     setBoxes((prev) =>
       prev.map((box, idx) => {
         if (idx !== index) return box;
-        if (box.polygon && ["x", "y", "width", "height"].includes(field as string)) {
+        if (box.polygon) {
           return box;
         }
-        const next = { ...box } as EditorBox;
+        const next: EditorBox = { ...box };
         if (field === "width" || field === "height") {
           const max = field === "width" ? 1 - box.x : 1 - box.y;
-          (next as EditorBox)[field] = clamp(value, 0.001, max);
+          next[field] = clamp(value, 0.001, max);
         } else {
-          (next as EditorBox)[field] = clamp(value);
+          next[field] = clamp(value);
         }
         return next;
       })
@@ -469,36 +469,41 @@ export function AnnotatedViewer({ result, file, onUpdate }: AnnotatedViewerProps
                   </div>
                   {box.polygon && box.polygon.length >= 6 ? (
                     <div className="space-y-2 text-xs">
-                      {Array.from({ length: box.polygon.length / 2 }).map((_, vertexIndex) => (
-                        <div key={vertexIndex} className="grid grid-cols-2 gap-2">
-                          <label className="space-y-1">
-                            <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">x</span>
-                            <Input
-                              type="number"
-                              step="0.001"
-                              min={0}
-                              max={1}
-                              value={box.polygon[vertexIndex * 2].toFixed(3)}
-                              onChange={(event) =>
-                                handlePolygonVertexChange(index, vertexIndex, "x", Number(event.target.value) || 0)
-                              }
-                            />
-                          </label>
-                          <label className="space-y-1">
-                            <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">y</span>
-                            <Input
-                              type="number"
-                              step="0.001"
-                              min={0}
-                              max={1}
-                              value={box.polygon[vertexIndex * 2 + 1].toFixed(3)}
-                              onChange={(event) =>
-                                handlePolygonVertexChange(index, vertexIndex, "y", Number(event.target.value) || 0)
-                              }
-                            />
-                          </label>
-                        </div>
-                      ))}
+                      {Array.from({ length: box.polygon.length / 2 }).map((_, vertexIndex) => {
+                        const polygon = box.polygon!;
+                        const xValue = polygon[vertexIndex * 2] ?? 0;
+                        const yValue = polygon[vertexIndex * 2 + 1] ?? 0;
+                        return (
+                          <div key={vertexIndex} className="grid grid-cols-2 gap-2">
+                            <label className="space-y-1">
+                              <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">x</span>
+                              <Input
+                                type="number"
+                                step="0.001"
+                                min={0}
+                                max={1}
+                                value={xValue.toFixed(3)}
+                                onChange={(event) =>
+                                  handlePolygonVertexChange(index, vertexIndex, "x", Number(event.target.value) || 0)
+                                }
+                              />
+                            </label>
+                            <label className="space-y-1">
+                              <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">y</span>
+                              <Input
+                                type="number"
+                                step="0.001"
+                                min={0}
+                                max={1}
+                                value={yValue.toFixed(3)}
+                                onChange={(event) =>
+                                  handlePolygonVertexChange(index, vertexIndex, "y", Number(event.target.value) || 0)
+                                }
+                              />
+                            </label>
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-3 text-xs md:grid-cols-4">
