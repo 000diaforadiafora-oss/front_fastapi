@@ -53,8 +53,12 @@ export function UploadCard({ onResult, onFileChange }: UploadCardProps) {
       setIsDetecting(true);
       setError(null);
       const response = await detect(file);
-      setLastResponse(response);
-      onResult(response, file);
+      const normalized: DetectResponse = {
+        ...response,
+        boxes: response.boxes ?? [],
+      };
+      setLastResponse(normalized);
+      onResult(normalized, file);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Detection failed");
     } finally {
@@ -121,9 +125,9 @@ export function UploadCard({ onResult, onFileChange }: UploadCardProps) {
         {error && <p className="text-sm text-destructive">{error}</p>}
         {lastResponse && (
           <div className="rounded-xl border border-dashed border-muted p-4 text-sm text-muted-foreground">
-            <p>
-              Latest detection: <span className="font-medium text-foreground">{lastResponse.cfu_count}</span> colonies
-              detected
+            <p className="font-medium text-foreground">Detection ID: {lastResponse.image_id}</p>
+            <p className="text-xs text-muted-foreground">
+              {lastResponse.boxes.length} annotations returned
             </p>
           </div>
         )}

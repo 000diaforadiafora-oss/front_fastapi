@@ -33,7 +33,7 @@ export function Dashboard() {
                 onResult={(result, file) => {
                   setLastResult(result);
                   setCurrentFile(file);
-                  setEditedBoxes(result.boxes);
+                  setEditedBoxes(result.boxes ?? []);
                 }}
                 onFileChange={(file) => {
                   setCurrentFile(file);
@@ -61,8 +61,8 @@ export function Dashboard() {
               </CardHeader>
               <CardContent className="space-y-4 text-sm text-muted-foreground">
                 <p>
-                  The latest detection produced {lastResult?.cfu_count ?? 0} colonies. Use the <strong>Export client ZIP</strong>
-                  button in the Annotated tab to download the original image together with the edited labels.
+                  The latest detection returned {lastResult?.boxes.length ?? 0} annotations. Use the <strong>Export client ZIP
+                  </strong> button in the Annotated tab to download the original image together with the edited labels.
                 </p>
                 <p>
                   Backend exports are available via the "Download ZIP from server" action in the detector card. Those contain the

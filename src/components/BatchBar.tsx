@@ -22,10 +22,21 @@ export type BatchBarProps = {
 };
 
 export function BatchBar({ onSelectSample }: BatchBarProps) {
-  const [batches, setBatches] = useState<Batch[]>(() => [createBatch(1)]);
+  const initialState = useMemo(() => {
+    const seedBatches = [createBatch(1)];
+    const firstBatch = seedBatches[0];
+    return {
+      batches: seedBatches,
+      batchId: firstBatch?.id ?? "",
+      sampleId: firstBatch?.samples[0]?.id ?? null,
+    };
+  }, []);
+
+  const [batches, setBatches] = useState<Batch[]>(initialState.batches);
+  const [expandedBatchId, setExpandedBatchId] = useState<string | null>(initialState.batchId || null);
   const [activeIds, setActiveIds] = useState<{ batchId: string; sampleId: string | null }>(() => ({
-    batchId: batches[0]?.id ?? "",
-    sampleId: batches[0]?.samples[0]?.id ?? null,
+    batchId: initialState.batchId,
+    sampleId: initialState.sampleId,
   }));
 
   const currentBatch = useMemo(() => batches.find((batch) => batch.id === activeIds.batchId) ?? batches[0], [
@@ -35,8 +46,10 @@ export function BatchBar({ onSelectSample }: BatchBarProps) {
 
   const handleNewBatch = () => {
     setBatches((prev) => {
-      const next = [...prev, createBatch(prev.length + 1)];
-      return next;
+      const nextBatch = createBatch(prev.length + 1);
+      setExpandedBatchId(nextBatch.id);
+      setActiveIds({ batchId: nextBatch.id, sampleId: nextBatch.samples[0]?.id ?? null });
+      return [...prev, nextBatch];
     });
   };
 
@@ -50,7 +63,16 @@ export function BatchBar({ onSelectSample }: BatchBarProps) {
     );
   };
 
+  const handleRenameBatch = (batchId: string, name: string) => {
+    setBatches((prev) => prev.map((batch) => (batch.id === batchId ? { ...batch, name } : batch)));
+  };
+
+  const toggleBatch = (batchId: string) => {
+    setExpandedBatchId((prev) => (prev === batchId ? null : batchId));
+  };
+
   const handleSelectSample = (batch: Batch, sample: Sample) => {
+    setExpandedBatchId(batch.id);
     setActiveIds({ batchId: batch.id, sampleId: sample.id });
     onSelectSample?.(batch, sample);
   };
@@ -75,40 +97,51 @@ export function BatchBar({ onSelectSample }: BatchBarProps) {
               <div key={batch.id} className="space-y-2">
                 <div
                   className={cn(
-                    "flex items-center justify-between rounded-xl border px-3 py-2 text-sm font-medium",
+                    "flex items-center justify-between rounded-xl border px-3 py-2 text-sm",
                     batch.id === activeIds.batchId ? "border-primary bg-primary/5" : "border-transparent bg-muted/60"
                   )}
                 >
-                  <button
-                    type="button"
-                    className="text-left"
-                    onClick={() => setActiveIds({ batchId: batch.id, sampleId: batch.samples[0]?.id ?? null })}
-                  >
-                    {batch.name}
-                  </button>
-                  <Badge variant="outline">{batch.samples.length} samples</Badge>
-                </div>
-                <div className="space-y-2 pl-3">
-                  {batch.samples.map((sample) => (
-                    <button
-                      key={sample.id}
-                      type="button"
-                      onClick={() => handleSelectSample(batch, sample)}
-                      className={cn(
-                        "flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition",
-                        batch.id === activeIds.batchId && sample.id === activeIds.sampleId
-                          ? "border-primary bg-primary/10"
-                          : "border-border bg-background hover:bg-muted"
-                      )}
+                  <input
+                    type="text"
+                    value={batch.name}
+                    onChange={(event) => handleRenameBatch(batch.id, event.target.value)}
+                    className="w-full bg-transparent font-medium focus:outline-none"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{batch.samples.length} samples</Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleBatch(batch.id)}
+                      className="h-8 px-2"
                     >
-                      <span>{sample.name}</span>
-                      <span className="text-xs text-muted-foreground">{sample.images} images</span>
-                    </button>
-                  ))}
-                  {batch.samples.length === 0 && (
-                    <p className="text-xs text-muted-foreground">No samples yet.</p>
-                  )}
+                      {expandedBatchId === batch.id ? "Hide" : "Show"}
+                    </Button>
+                  </div>
                 </div>
+                {expandedBatchId === batch.id && (
+                  <div className="space-y-2 pl-3">
+                    {batch.samples.map((sample) => (
+                      <button
+                        key={sample.id}
+                        type="button"
+                        onClick={() => handleSelectSample(batch, sample)}
+                        className={cn(
+                          "flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition",
+                          batch.id === activeIds.batchId && sample.id === activeIds.sampleId
+                            ? "border-primary bg-primary/10"
+                            : "border-border bg-background hover:bg-muted"
+                        )}
+                      >
+                        <span>{sample.name}</span>
+                        <span className="text-xs text-muted-foreground">{sample.images} images</span>
+                      </button>
+                    ))}
+                    {batch.samples.length === 0 && (
+                      <p className="text-xs text-muted-foreground">No samples yet.</p>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>

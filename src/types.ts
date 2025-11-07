@@ -1,19 +1,20 @@
 export type Box = {
   id?: string;
-  x: number;
-  y: number;
+  class: string;
+  confidence?: number;
+  x?: number;
+  y?: number;
   width?: number;
   height?: number;
   polygon?: number[];
-  confidence?: number;
-  class: string;
 };
 
 export type DetectResponse = {
-  success: boolean;
-  cfu_count: number;
+  image_id: string;
   boxes: Box[];
-  image_width: number;
-  image_height: number;
-  annotated_image: string;
+  annotated_image?: string;
+  success?: boolean;
+  cfu_count?: number;
+  image_width?: number;
+  image_height?: number;
 };

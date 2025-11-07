@@ -12,8 +12,10 @@ export function boxesToYoloLines(boxes: Box[], classMap: Record<string, number>)
       }
       const width = box.width ?? 0;
       const height = box.height ?? 0;
-      const xCenter = box.x + width / 2;
-      const yCenter = box.y + height / 2;
+      const baseX = box.x ?? 0;
+      const baseY = box.y ?? 0;
+      const xCenter = baseX + width / 2;
+      const yCenter = baseY + height / 2;
       return `${classId} ${xCenter.toFixed(6)} ${yCenter.toFixed(6)} ${width.toFixed(6)} ${height.toFixed(6)}`;
     })
     .join("\n");

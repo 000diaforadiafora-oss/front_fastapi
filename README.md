@@ -4,7 +4,7 @@ Planetschool Frontend is a Vite + React application that integrates with the Fas
 
 ## Features
 
-- **CFU detection** via `/detect/` endpoint with live progress states.
+- **CFU detection** via `/api/detect/` returning JSON annotations (bounding boxes and polygons).
 - **Webcam capture** and traditional uploads for images.
 - **Interactive annotation editor** supporting rectangle and polygon creation, drag, delete, and class editing.
 - **Client-side YOLO export** with bounding boxes or segmentation polygons using `jszip` and `file-saver`.
@@ -20,6 +20,20 @@ npm run dev
 ```
 
 By default the frontend assumes the backend is proxied locally under `/api` (matching the provided Nginx template). If you are calling a remote backend directly, change `VITE_API_BASE_URL` accordingly in `.env`.
+
+`src/api/detect.ts` sends images under the `file` field and expects a response shaped like:
+
+```json
+{
+  "image_id": "string",
+  "boxes": [
+    { "class": "cfu", "confidence": 0.97, "x": 0.1, "y": 0.2, "width": 0.3, "height": 0.25 },
+    { "class": "cfu", "polygon": [0.1, 0.1, 0.2, 0.15, 0.18, 0.22] }
+  ]
+}
+```
+
+Polygons are preserved as `number[]` pairs (`[x1, y1, x2, y2, ...]`) and exported in YOLO segmentation format alongside any rectangular annotations.
 
 ## Available scripts
 

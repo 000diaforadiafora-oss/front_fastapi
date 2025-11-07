@@ -69,8 +69,11 @@ export function AnnotatedViewer({ result, file, onUpdate }: AnnotatedViewerProps
       setSelectedIndex(null);
       return;
     }
-    const normalized = result.boxes.map<EditorBox>((box, index) => ({
+    const normalized = (result.boxes ?? []).map<EditorBox>((box, index) => ({
       ...box,
+      class: box.class ?? DEFAULT_CLASS,
+      x: box.x ?? 0,
+      y: box.y ?? 0,
       width: box.width ?? 0,
       height: box.height ?? 0,
       id: box.id ?? `box-${Date.now()}-${index}`,
@@ -118,7 +121,9 @@ export function AnnotatedViewer({ result, file, onUpdate }: AnnotatedViewerProps
       }
       const width = box.width ?? 0;
       const height = box.height ?? 0;
-      return point.x >= box.x && point.x <= box.x + width && point.y >= box.y && point.y <= box.y + height;
+      const baseX = box.x ?? 0;
+      const baseY = box.y ?? 0;
+      return point.x >= baseX && point.x <= baseX + width && point.y >= baseY && point.y <= baseY + height;
     });
   };
 
@@ -161,7 +166,7 @@ export function AnnotatedViewer({ result, file, onUpdate }: AnnotatedViewerProps
   const updateDraftRect = (point: Point) => {
     setDraftRect((prev) => {
       if (!prev) return prev;
-      const origin = drawOrigin.current ?? prev;
+      const origin = drawOrigin.current ?? { x: prev.x ?? point.x, y: prev.y ?? point.y };
       const x = Math.min(origin.x, point.x);
       const y = Math.min(origin.y, point.y);
       const width = Math.abs(point.x - origin.x);
@@ -204,8 +209,10 @@ export function AnnotatedViewer({ result, file, onUpdate }: AnnotatedViewerProps
       setSelectedIndex(hitIndex);
       if (mode === "rect" && boxes[hitIndex].polygon == null) {
         const box = boxes[hitIndex];
-        const offsetX = point.x - box.x;
-        const offsetY = point.y - box.y;
+        const baseX = box.x ?? 0;
+        const baseY = box.y ?? 0;
+        const offsetX = point.x - baseX;
+        const offsetY = point.y - baseY;
         setDragState({ index: hitIndex, offsetX, offsetY });
       }
       return;
@@ -288,11 +295,13 @@ export function AnnotatedViewer({ result, file, onUpdate }: AnnotatedViewerProps
         }
 
         if (field === "width") {
-          const maxWidth = 1 - box.x;
+          const baseX = box.x ?? 0;
+          const maxWidth = 1 - baseX;
           return { ...box, width: clamp(value, 0.001, maxWidth) };
         }
 
-        const maxHeight = 1 - box.y;
+        const baseY = box.y ?? 0;
+        const maxHeight = 1 - baseY;
         return { ...box, height: clamp(value, 0.001, maxHeight) };
       })
     );
@@ -339,11 +348,13 @@ export function AnnotatedViewer({ result, file, onUpdate }: AnnotatedViewerProps
           }
           const width = box.width ?? 0;
           const height = box.height ?? 0;
+          const x = box.x ?? 0;
+          const y = box.y ?? 0;
           return (
             <rect
               key={box.id}
-              x={box.x}
-              y={box.y}
+              x={x}
+              y={y}
               width={width}
               height={height}
               className={cn(
@@ -444,7 +455,7 @@ export function AnnotatedViewer({ result, file, onUpdate }: AnnotatedViewerProps
         {boxes.length > 0 && (
           <div className="space-y-4">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Objects</h3>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="annotations-grid">
               {boxes.map((box, index) => (
                 <div
                   key={box.id}
