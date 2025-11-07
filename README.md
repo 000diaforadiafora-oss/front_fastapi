@@ -34,4 +34,31 @@ npm run build
 # generated assets are located in dist/
 ```
 
-Serve the contents of the `dist` directory with any static web server (e.g. Nginx). A sample Nginx configuration is available in the user prompt.
+Serve the contents of the `dist` directory with any static web server (e.g. Nginx). A hardened example configuration lives in [`deploy/nginx.conf`](deploy/nginx.conf).
+
+## Production deployment checklist
+
+The following steps match the workflow used on the Hetzner host that powers https://countex.space:
+
+```bash
+npm ci
+npm run build
+sudo rm -rf /var/www/front_fastapi
+sudo mkdir -p /var/www/front_fastapi
+sudo cp -r dist/* /var/www/front_fastapi/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Once the site is in place, request or renew TLS certificates (if needed) and verify the health endpoint:
+
+```bash
+sudo certbot --nginx -d countex.space -d www.countex.space
+curl -s https://countex.space/health | jq
+```
+
+Finally, monitor the services to make sure both the frontend and backend stay healthy:
+
+```bash
+sudo systemctl status planetschool
+curl -I https://countex.space/detect/
+```
