@@ -277,18 +277,23 @@ export function AnnotatedViewer({ result, file, onUpdate }: AnnotatedViewerProps
   const handleBoxValueChange = (index: number, field: "x" | "y" | "width" | "height", value: number) => {
     setBoxes((prev) =>
       prev.map((box, idx) => {
-        if (idx !== index) return box;
-        if (box.polygon) {
-          return box;
+        if (idx !== index || box.polygon) return box;
+
+        if (field === "x") {
+          return { ...box, x: clamp(value) };
         }
-        const next: EditorBox = { ...box };
-        if (field === "width" || field === "height") {
-          const max = field === "width" ? 1 - box.x : 1 - box.y;
-          next[field] = clamp(value, 0.001, max);
-        } else {
-          next[field] = clamp(value);
+
+        if (field === "y") {
+          return { ...box, y: clamp(value) };
         }
-        return next;
+
+        if (field === "width") {
+          const maxWidth = 1 - box.x;
+          return { ...box, width: clamp(value, 0.001, maxWidth) };
+        }
+
+        const maxHeight = 1 - box.y;
+        return { ...box, height: clamp(value, 0.001, maxHeight) };
       })
     );
   };
@@ -470,7 +475,8 @@ export function AnnotatedViewer({ result, file, onUpdate }: AnnotatedViewerProps
                   {box.polygon && box.polygon.length >= 6 ? (
                     <div className="space-y-2 text-xs">
                       {Array.from({ length: box.polygon.length / 2 }).map((_, vertexIndex) => {
-                        const polygon = box.polygon!;
+                        const polygon = box.polygon;
+                        if (!polygon) return null;
                         const xValue = polygon[vertexIndex * 2] ?? 0;
                         const yValue = polygon[vertexIndex * 2 + 1] ?? 0;
                         return (
