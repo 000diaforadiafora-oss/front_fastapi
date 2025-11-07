@@ -62,3 +62,49 @@ Finally, monitor the services to make sure both the frontend and backend stay he
 sudo systemctl status planetschool
 curl -I https://countex.space/detect/
 ```
+
+### Zero-downtime deploy (optional)
+
+Build the site in a temporary directory and swap the deployment atomically to avoid partial updates:
+
+```bash
+npm ci
+npm run build
+sudo rsync -a --delete dist/ /var/www/front_fastapi_new/
+sudo mv /var/www/front_fastapi /var/www/front_fastapi_old || true
+sudo mv /var/www/front_fastapi_new /var/www/front_fastapi
+sudo nginx -t && sudo systemctl reload nginx
+sudo rm -rf /var/www/front_fastapi_old
+```
+
+### TLS renewal
+
+Certbot installs a systemd timer by default. Confirm renewal with a dry run and ensure Nginx reloads automatically:
+
+```bash
+sudo certbot renew --dry-run
+systemctl list-timers | grep certbot
+```
+
+If the timer is unavailable, add a cron entry:
+
+```bash
+echo '0 3 * * * root certbot renew --quiet --deploy-hook "systemctl reload nginx"' | sudo tee /etc/cron.d/certbot_renew
+```
+
+### Nginx considerations
+
+- `deploy/nginx.conf` configures cache lifetimes via a `map` block, injects security headers, and sets `client_max_body_size 25M` for larger uploads.
+- The proxy stanza extends `proxy_read_timeout`/`proxy_send_timeout` to 120 s to tolerate slow inference responses.
+- When hosting the backend on the same origin, consider exposing it under `/api/` and pointing `VITE_API_BASE_URL` to `/api` to eliminate CORS requirements in production.
+
+### Troubleshooting
+
+Useful commands while diagnosing issues on the server:
+
+```bash
+sudo nginx -T                # print the active configuration
+journalctl -u nginx -e       # review recent errors
+curl -I https://countex.space           # validate the frontend
+curl -I https://countex.space/api/health # validate the proxied backend
+```
